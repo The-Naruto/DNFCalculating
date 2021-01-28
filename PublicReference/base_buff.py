@@ -6,6 +6,7 @@ from PublicReference.equipment.武器融合_buff import *
 from PublicReference.choise.选项设置_buff import *
 from PublicReference.common import *
 
+
 class 技能:
     名称 = ''
     备注 = ''
@@ -108,6 +109,7 @@ class 角色属性(属性):
     希洛克武器词条 = 0
     自适应最高值 = []
     武器词条触发 = 0
+    产物升级 = 0
 
     def 力智固定加成(self, x=0, y=0):
         if self.装备描述 == 1:
@@ -298,7 +300,7 @@ class 角色属性(属性):
         for i in range(0,12):
             temp = 装备列表[装备序号[self.装备栏[i]]]
             if self.是否增幅[i] and temp.所属套装 != '智慧产物':
-                x = 增幅计算(temp.等级, temp.品质,self.强化等级[i])
+                x = 增幅计算(temp.等级, temp.品质,self.强化等级[i],self.增幅版本)
                 if '智力' in self.类型:
                     self.智力 += x
                 if '体力' in self.类型:
@@ -319,7 +321,7 @@ class 角色属性(属性):
             self.精神 += temp.精神 + 四维
 
 
-    def 技能等级加成(self, 加成类型, min, max, lv):
+    def 技能等级加成(self, 加成类型, min, max, lv,可变 = 0):
         lv = int(lv)
         if self.装备描述 ==1:
             if 加成类型=="所有":
@@ -340,6 +342,9 @@ class 角色属性(属性):
                     else:
                         if i.是否主动 == 1:
                             i.等级加成(lv)
+            # if 可变 > 0:
+            #     self.变换词条[可变-1] = [6,2,14 + (2 if 可变 > 1 else 4), 14 + (9 if 可变 > 1 else 17)]
+        
         return ''
 
     def 提升率计算(self, 总数据, x = 0):
@@ -527,6 +532,7 @@ class 角色属性(属性):
             替换属性 = 替换属性_temp[序号]
             self.一觉Lv = 替换属性.一觉Lv
             self.一觉力智 = 替换属性.一觉力智
+            self.一觉适用数值 = 一觉计算属性_temp[序号].技能栏[self.一觉序号].适用数值 
             self.一觉力智per = 替换属性.一觉力智per
             self.技能栏[self.一觉序号] = 替换属性.技能栏[self.一觉序号]
             self.技能栏[self.三觉序号] = 替换属性.技能栏[self.三觉序号]
@@ -551,6 +557,8 @@ class 角色属性(属性):
         return 总数据
 
     def 自适应计算(self):
+        # 黑鸦词条计算
+
         # 武器词条自适应计算
         if self.希洛克武器词条 == 1:
             词条提升率 = []
@@ -561,6 +569,8 @@ class 角色属性(属性):
                 武器属性B = 武器属性组合[i][1]
                 temp.武器属性输入(武器属性A, 武器属性B)
                 temp.适用数值计算()
+                if temp.双装备模式 == 1 and temp.次数输入[temp.一觉序号] == '1':
+                    temp.技能栏[temp.一觉序号].适用数值 = temp.一觉适用数值
                 for i in range(len(temp.技能栏)):
                     if temp.次数输入[i] == '1':
                         总数据.append(temp.技能栏[i].结算统计())
@@ -672,6 +682,25 @@ class 角色窗口(窗口):
     def 界面1(self):
         super().界面1()
 
+        #region 王座本源
+        counter4 = 0
+        counter5 = 15
+        self.图片 = QLabel(self.main_frame1)
+        self.图片.setMovie(self.装备图片[装备序号['王座本源']])
+        self.装备图片[装备序号['王座本源']].start()
+        self.图片.resize(28, 28)
+        self.图片.move(657 + 55 * counter4, 20 + counter5 * 32)
+        self.按钮 = QPushButton(self.main_frame1)
+        self.按钮.setStyleSheet("background-color: rgb(0, 0, 0)")
+        self.按钮.resize(28, 28)
+        self.按钮.setToolTip(self.单件描述(装备列表[装备序号['王座本源']]))
+        self.遮罩透明度[装备序号['王座本源']].setOpacity(0.5)
+        self.按钮.setGraphicsEffect(self.遮罩透明度[装备序号['王座本源']])
+        self.按钮.clicked.connect(lambda state, index = 装备序号['王座本源']: self.装备图标点击事件(index, 10))
+        self.装备图片按钮[装备序号['王座本源']] = self.按钮
+        self.装备图片按钮[装备序号['王座本源']].move(657 + 55 * counter4, 20 + counter5 * 32)
+        #endregion
+
         for i in 称号列表:
             self.称号.addItem(i.名称)
         
@@ -715,6 +744,8 @@ class 角色窗口(窗口):
         self.线程数选择.resize(80, 24)
         for i in range(thread_num, 0, -1):
             self.线程数选择.addItem('进程:' + str(i))
+        if thread_num > 1 :
+            self.线程数选择.setCurrentIndex(1)
 
         self.禁用存档 = QCheckBox('禁用自动存档', self.main_frame1)
         self.禁用存档.move(990, 545)
@@ -2208,7 +2239,7 @@ class 角色窗口(窗口):
             temp += '详细数据'
         else:
             temp += name
-        temp += '（最多显示前18个技能）'
+        temp += '（最多显示前18个技能）'+"装备版本："+self.角色属性A.版本 + " 增幅版本：" + self.角色属性A.增幅版本
         输出窗口.setWindowTitle(temp)
         输出窗口.setWindowIcon(self.icon)  
         QLabel(输出窗口).setPixmap(self.输出背景图片)
@@ -2748,11 +2779,11 @@ class 角色窗口(窗口):
                         tempstr[i]+='<br>'
                     tempstr[i]+='<font color="#FF00FF">+'+str(属性.强化等级[i])+' 增幅: '
                     if '体力' in 属性.类型:
-                        tempstr[i]+='异次元体力 + '+str(增幅计算(100,装备.品质,属性.强化等级[i]))+'</font>'
+                        tempstr[i]+='异次元体力 + '+str(增幅计算(装备.等级,装备.品质,属性.强化等级[i],属性.增幅版本))+'</font>'
                     elif '精神' in 属性.类型:
-                        tempstr[i]+='异次元精神 + '+str(增幅计算(100,装备.品质,属性.强化等级[i]))+'</font>'
+                        tempstr[i]+='异次元精神 + '+str(增幅计算(装备.等级,装备.品质,属性.强化等级[i],属性.增幅版本))+'</font>'
                     elif '智力' in 属性.类型:
-                        tempstr[i]+='异次元智力 + '+str(增幅计算(100,装备.品质,属性.强化等级[i]))+'</font>'
+                        tempstr[i]+='异次元智力 + '+str(增幅计算(装备.等级,装备.品质,属性.强化等级[i],属性.增幅版本))+'</font>'
 
             if tempstr[i] != '':
                 tempstr[i] += '<br>'

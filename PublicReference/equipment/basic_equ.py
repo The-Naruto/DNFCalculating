@@ -18,11 +18,25 @@ class 装备:
     物理攻击力 = 0
     魔法攻击力 = 0
     独立攻击力 = 0
+    属性1描述 = '无'
+    属性1范围 = []
+    属性1选择 = 0
+    属性2描述 = '无'
+    属性2范围 = []
+    属性2选择 = 0
+    属性3描述 = '无'
+    属性3范围 = []
+    属性3选择 = 0
+    属性4描述 = '无'
+    属性4范围 = []
+    属性4选择 = 0
     def 城镇属性(self, 属性):
         pass
     def 城镇属性_BUFF(self, 属性):
         pass
     def 进图属性(self, 属性):
+        pass
+    def 产物升级(self,属性):
         pass
     def 进图属性_BUFF(self, 属性):
         pass
@@ -56,9 +70,42 @@ class 装备:
         self.属性描述 += '<font color="#00A2E8">其他属性：</font><br>'
         self.其它属性(属性)
         if self.属性描述.endswith('<font color="#00A2E8">其他属性：</font><br>'):
-            self.属性描述 = self.属性描述.replace('<font color="#00A2E8">其他属性：</font><br>','')        
+            self.属性描述 = self.属性描述.replace('<font color="#00A2E8">其他属性：</font><br>','')
+        self.属性描述 += '<font color="#00A2E8">变换属性：</font><br>'
+        self.变换属性(属性)
+        if self.属性描述.endswith('<font color="#00A2E8">变换属性：</font><br>'):
+            self.属性描述 = self.属性描述.replace('<font color="#00A2E8">变换属性：</font><br>','')     
         属性.装备描述 = 0
         return self.属性描述 
+
+    def 装备描述_变换属性(self, 属性):
+        属性.装备描述 = 1
+        self.属性描述 = ''
+        if self.部位 in ['上衣','下装','腰带','头肩','鞋']:
+            self.属性描述 += ('力量 +{}<br>'.format(self.力量[属性.防具类型])) if self.力量[属性.防具类型] > 0 else '' 
+            self.属性描述 += ('智力 +{}<br>'.format(self.智力[属性.防具类型])) if self.智力[属性.防具类型] > 0 else ''             
+        else:
+            self.属性描述 += ('力量 +{}<br>'.format(self.力量)) if self.力量 > 0 else '' 
+            self.属性描述 += ('智力 +{}<br>'.format(self.智力)) if self.智力 > 0 else ''        
+        self.属性描述 += ('物理攻击力 +{}<br>'.format(self.物理攻击力)) if self.物理攻击力 > 0 else ''
+        self.属性描述 += ('魔法攻击力 +{}<br>'.format(self.魔法攻击力)) if self.魔法攻击力 > 0 else ''
+        self.属性描述 += ('独立攻击力 +{}<br>'.format(self.独立攻击力)) if self.独立攻击力 > 0 else ''
+        self.城镇属性(属性)
+        self.属性描述 += '<font color="#00A2E8">进图触发：</font><br>'
+        self.进图属性(属性)
+        if self.属性描述.endswith('<font color="#00A2E8">进图触发：</font><br>'):
+            self.属性描述 = self.属性描述.replace('<font color="#00A2E8">进图触发：</font><br>','')
+        self.属性描述 += '<font color="#00A2E8">其他属性：</font><br>'
+        self.其它属性(属性)
+        if self.属性描述.endswith('<font color="#00A2E8">其他属性：</font><br>'):
+            self.属性描述 = self.属性描述.replace('<font color="#00A2E8">其他属性：</font><br>','')
+        self.属性描述 += '<font color="#00A2E8">变换属性：</font><br>'
+        # self.变换属性(属性)
+        # if self.属性描述.endswith('<font color="#00A2E8">变换属性：</font><br>'):
+        #     self.属性描述 = self.属性描述.replace('<font color="#00A2E8">变换属性：</font><br>','')     
+        属性.装备描述 = 0
+        return self.属性描述 
+
     def 装备描述_BUFF(self, 属性):
         属性.装备描述 = 1
         self.属性描述 = ''
@@ -120,56 +167,6 @@ class 改造产物(装备):
     def 装备描述(self, 属性):
         temp = ''
         return temp
-
-class 飘零之花武器(装备):
-    模式 = 0
-    所属套装 = '智慧产物'
-    等级 = 100
-    品质 = '史诗'
-    部位 = '武器'
-    物攻成长 = 0
-    魔攻成长 = 0
-    独立成长 = 115
-    力智成长 = 20
-    def 城镇属性(self, 属性):
-        改造等级 = 属性.获取改造(self.部位)
-        属性.技能攻击力加成(0.35)
-        属性.附加伤害加成(0.50)
-        属性.百分比力智加成(0.20)
-        属性.三攻固定加成(self.物攻成长 * 改造等级,self.魔攻成长 * 改造等级,self.独立成长 * 改造等级)
-        属性.力智固定加成(self.力智成长 * 改造等级)
-        # 属性.物理攻击力 += self.物攻成长 * 改造等级
-        # 属性.魔法攻击力 += self.魔攻成长 * 改造等级
-        # 属性.独立攻击力 += self.独立成长 * 改造等级
-        # 属性.力量 += self.力智成长 * 改造等级
-        # 属性.智力 += self.力智成长 * 改造等级
-        pass
-    def 进图属性(self, 属性):
-        pass
-    def 其它属性(self, 属性):
-        pass
-    def 装备描述(self, 属性):
-        temp = ''
-        if self.力量 != 0:
-            temp += '力量 +' + str(self.力量) + '<br>'
-        if self.智力 != 0:
-            temp += '智力 +' + str(self.智力) + '<br>'
-        temp += '物理攻击力 +' + str(self.物理攻击力) + '<br>'
-        temp += '魔法攻击力 +' + str(self.魔法攻击力) + '<br>'
-        temp += '独立攻击力 +' + str(self.独立攻击力) + '<br>'
-        改造等级 = 属性.获取改造(self.部位)
-        if 改造等级 >= 5:
-            temp += '技能攻击力 +35%<br>'
-            temp += '附加伤害 +50%<br>'
-            temp += '百分比力智 +20%<br>'
-        if 改造等级 > 0:
-            temp += '<font color="#FF8200">改造属性(+' + str(改造等级) + ')：</font><br>'
-            temp += '力量 +' + str(self.力智成长 * 改造等级) + '<br>'
-            temp += '智力 +' + str(self.力智成长 * 改造等级) + '<br>'
-            temp += '物理攻击力 +' + str(self.物攻成长 * 改造等级) + '<br>'
-            temp += '魔法攻击力 +' + str(self.魔攻成长 * 改造等级) + '<br>'
-            temp += '独立攻击力 +' + str(self.独立成长 * 改造等级) + '<br>'
-        return temp        
 
 class 套装:
     属性描述 = ''

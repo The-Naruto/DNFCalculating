@@ -1,14 +1,14 @@
 
-执行程序下载:https://wws.lanzous.com/b01bfj76f 或 https://pan.lanzou.com/b01bfj76f
+执行程序下载:https://pan.lanzous.com/b01bfj76f 或 https://www.lanzou.com/b01bfj76f
 
-python(3.8)编写，使用 pyqt5(5.14.2) 图形 GUI 库<br>
+python(3.8)编写，使用 pyqt5图形 GUI 库<br>
 主框架由纸飞机实现，西瓜协助修改，SCUDRT 对算法进行优化修改，风之凌殇添加多进程优化<br>
 
 ## 依赖安装
 
 安装[Python](https://www.python.org/),计算器开发使用的是3.8版本<br>
 安装项目依赖<br>
-> pip install --user  -i https://pypi.mirrors.ustc.edu.cn/simple/ -r requirements.txt
+> pip install -i https://pypi.mirrors.ustc.edu.cn/simple/ -r requirements.txt
 
 <!-- ### 修改项目
 * fork本项目
@@ -21,9 +21,17 @@ python(3.8)编写，使用 pyqt5(5.14.2) 图形 GUI 库<br>
 * 新建分支并检出新分支,如
 > git checkout -b ver0.1<br> -->
 
+## macOS下运行方式
+
+&#160; &#160; &#160; &#160; 直接在`Finder`中双击`run_mac.command`即可运行。
+
+&#160; &#160; &#160; &#160; 或者在`终端(Terminal)`中，执行命令`python3.8 main.py`即可运行。
+
+
 ## 程序结构
 
 |--　DNFCalculating</br>
+　　　　|--　run_mac.command：macOS下运行脚本</br>
 　　　　|--　build.bat：打包脚本</br>
 　　　　|--　CHANGELOG.md：程序更新记录</br>
 　　　　|--　LICENSE：开源许可</br>
@@ -37,7 +45,7 @@ python(3.8)编写，使用 pyqt5(5.14.2) 图形 GUI 库<br>
 　　　　|　　　|--　release_produce.js：更新日志自动生成程序</br>
 　　　　|　　　|--　upload_cookie.json：蓝奏云上传cookie文件</br>
 　　　　|　　　|--　upload_lanzouyun.py：自动上传蓝奏云文件</br>
-　　　　|--　Part：职业实现目录</br>
+　　　　|--　Characters：职业实现目录</br>
 　　　　|--　PublicReference：公有引用方法</br>
 　　　　|　　　|--　base.py：输出职业公有实现方法</br>
 　　　　|　　　|--　base_buff.py：奶系职业公有实现方法</br>

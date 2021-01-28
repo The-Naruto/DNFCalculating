@@ -9,14 +9,19 @@ from PublicReference.utils.producer_consumer import producer_data, consumer, thr
 import json
 import os
 import traceback
-from PublicReference.utils.lanzou.api import LanZouCloud
-# from lanzou.api import LanZouCloud
+# from PublicReference.utils.lanzou.api import LanZouCloud
+from lanzou.api import LanZouCloud
 from PublicReference.utils import zipfile
+from PublicReference.utils import img
 from pathlib import Path
 import shutil
 import sys
 import time
 import urllib.request
+import subprocess
+import base64
+
+主进程PID = ''
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
@@ -26,6 +31,7 @@ class 选择窗口(QMainWindow):
     云端版本 = ''
     自动检查版本 = False
     网盘链接 = ''
+    网盘报错 = 0
 
     def __init__(self):
         super().__init__()
@@ -34,31 +40,38 @@ class 选择窗口(QMainWindow):
         self.char_window = None
 
     def thread_init(self):
-        # 工作队列
-        work_queue = multiprocessing.JoinableQueue()
-        work_queue.cancel_join_thread()  # or else thread that puts data will not term
-        producer_data.work_queue = work_queue
-        # 工作进程
-        workers = []
-        for i in range(thread_num):
-            p = multiprocessing.Process(target=consumer, args=(work_queue, calc_core), daemon=True, name="worker#{}".format(i + 1))
-            p.start()
-            workers.append(p)
+        try:
+            # 工作队列
+            work_queue = multiprocessing.JoinableQueue()
+            work_queue.cancel_join_thread()  # or else thread that puts data will not term
+            producer_data.work_queue = work_queue
+            # 工作进程
+            workers = []
+            for i in range(thread_num):
+                p = multiprocessing.Process(target=consumer, args=(work_queue, calc_core), daemon=True, name="worker#{}".format(i + 1))
+                p.start()
+                workers.append(p)
 
-        logger.info("已启动{}个工作进程".format(thread_num))
+            # logger.info("已启动{}个工作进程".format(thread_num))
 
-        self.worker = workers
-        pass
+            self.worker = workers
+            pass
+        except Exception as error:
+            return error
 
     def 网盘检查(self):
-        lzy = LanZouCloud()
-        fileURL = ''
-        folder_info = lzy.get_folder_info_by_url('https://wws.lanzous.com/b01bfj76f')
         try:
-            resp = urllib.request.urlopen('http://dnf.17173.com/jsq/instructions.html?j')
+            lzy = LanZouCloud()
+            fileURL = ''
+            folder_info = lzy.get_folder_info_by_url('https://pan.lanzous.com/b01bfj76f')
+            if folder_info.code != LanZouCloud.SUCCESS:
+                self.网盘链接 =  ''
+                self.网盘报错 = 1
+                return
+            # resp = urllib.request.urlopen('http://dnf.17173.com/jsq/instructions.html?j')
             for file in folder_info.files:
                 if file.name.startswith("DNF计算器"):
-                    self.云端版本 = file.name.replace(".zip",".exe")
+                    self.云端版本 = file.name.replace(".zip"," 17173DNF.exe")
                     fileURL = file.url
                     if file.name.replace("DNF计算器","").replace(".zip","").replace("-",".") == self.计算器版本[5:]:
                         self.网盘链接 = ''
@@ -66,6 +79,7 @@ class 选择窗口(QMainWindow):
             self.网盘链接 =  fileURL
         except Exception as error:
             self.网盘链接 =  ''
+            self.网盘报错 = 1
             return
 
     def ui(self):
@@ -80,10 +94,10 @@ class 选择窗口(QMainWindow):
         if not os.path.exists('./ResourceFiles'):
             QMessageBox.information(self,"解压错误",  "未找到资源文件，请将压缩包中ResourceFiles解压到同目录后打开计算器")    
             return     
-        with open("ResourceFiles\\Config\\adventure_info.json",encoding='utf-8') as fp:
+        with open("ResourceFiles/Config/adventure_info.json",encoding='utf-8') as fp:
             角色列表 = json.load(fp)
         fp.close()
-        with open("ResourceFiles\\Config\\release_version.json") as fp:
+        with open("ResourceFiles/Config/release_version.json") as fp:
             versionInfo = json.load(fp)
             self.计算器版本 += versionInfo['version'].replace('-','.')
             self.自动检查版本 = versionInfo['AutoCheckUpdate']
@@ -107,6 +121,7 @@ class 选择窗口(QMainWindow):
         for i in range(17):
             self.family_img.append(QPixmap("ResourceFiles/img/分类/"+ str(i) +".png"))
 
+        
         wrapper = QWidget()
         self.setCentralWidget(wrapper)
         self.topFiller = QWidget()
@@ -204,13 +219,21 @@ class 选择窗口(QMainWindow):
         butten.setStyleSheet(按钮样式3)
         butten.resize(121,90)
 
+        self.版本提示 = QMessageBox(QMessageBox.Question, "提示", "此工具为开源免费软件\n如遇二次售卖获利,请协助反馈举报~")  
+
         if self.自动检查版本:
-            self.网盘检查()
-            if self.网盘链接 != '':
-                m_red_SheetStyle = "padding-left:3px;min-width: 25px; min-height: 16px;border-radius: 5px; background:red;color:white"
-                label = QLabel("New", self.topFiller)
-                label.move(115 + 4 * 125 + 90, 30 + (count + 1) * 100)
-                label.setStyleSheet(m_red_SheetStyle)
+            try:
+                self.网盘检查()
+                if self.网盘报错 == 1:
+                    self.报错提示 = QMessageBox(QMessageBox.Question, "提示", "无法自动检查更新，请在每周三/四自行前往检查版本")  
+                    # box.exec_()            
+                if self.网盘链接 != '':
+                    m_red_SheetStyle = "padding-left:3px;min-width: 25px; min-height: 16px;border-radius: 5px; background:red;color:white"
+                    label = QLabel("New", self.topFiller)
+                    label.move(115 + 4 * 125 + 90, 30 + (count + 1) * 100)
+                    label.setStyleSheet(m_red_SheetStyle)
+            except Exception as error:
+                pass
         count += 1
 
         butten=QtWidgets.QPushButton('问题反馈', self.topFiller)
@@ -220,8 +243,8 @@ class 选择窗口(QMainWindow):
         butten.resize(121,90)
         count += 1
 
-        butten=QtWidgets.QPushButton('打开设置', self.topFiller)
-        butten.clicked.connect(lambda state : os.system('notepad.exe "./ResourceFiles/Config/基础设置.ini"'))
+        butten=QtWidgets.QPushButton('打   赏', self.topFiller)
+        butten.clicked.connect(lambda state , index = count:self.打赏())
         butten.move(120 + 4 * 125, 10 + (count + 1) * 100)    
         butten.setStyleSheet(按钮样式3)
         butten.resize(121,90)
@@ -245,10 +268,33 @@ class 选择窗口(QMainWindow):
     def 打开窗口(self, name):
         if self.char_window != None:
             self.char_window.close()
-        module_name = "Part."+name
+        module_name = "Characters."+name
         职业 = importlib.import_module(module_name)
         self.char_window = eval("职业."+name + '()')
         self.char_window.show()
+    
+    def 打赏(self):
+        self.w = QWidget()
+        # 设置窗口大小
+        self.w.resize(300, 300)
+        # 移动窗口位置
+        # self.w.move(600, 250)
+        # 设置窗口标题
+        self.w.setWindowTitle('打赏-微信')
+        
+        # self.w.icon = QIcon('./ResourceFiles/img/logo.ico')
+        self.w.setWindowIcon(self.icon)
+        主背景 = QLabel(self.w)
+        赞赏码 = QPixmap()
+        赞赏码.loadFromData(base64.b64decode(img.二维码))
+        主背景.setPixmap(赞赏码)
+        # 主背景.move(0, int((self.w.height() - 1230) / 6))
+        # 主背景.setGraphicsEffect(主背景透明度)
+
+        # self.w.setStyleSheet("background-image: url(:/ResourceFiles/img/二维码.jpg);")
+        # 展示窗口
+        self.w.show()
+
 
     def 职业版本判断(self, index):
         try:
@@ -298,11 +344,14 @@ class 选择窗口(QMainWindow):
         if box.clickedButton() == A:
             self.打开链接(['https://www.bilibili.com/read/cv8424945'])
         if box.clickedButton() == B:
-            self.打开链接(['https://jq.qq.com/?_wv=1027&k=9S6c2xIb'])
+            self.打开链接(['https://jq.qq.com/?_wv=1027&k=ekQXpyq0'])
 
     def 检查更新(self):
         self.网盘检查()
-        if self.网盘链接 == '':
+        if self.网盘报错 == 1:
+            box = QMessageBox(QMessageBox.Question, "提示", "无法自动检查更新，请手动前往官网下载")  
+            box.exec_()
+        elif self.网盘链接 == '':
             box = QMessageBox(QMessageBox.Question, "提示", "已经是最新版本计算器！")  
             box.exec_()
         else:
@@ -337,7 +386,7 @@ class 选择窗口(QMainWindow):
                 # 循环解压文件到指定目录
         zip_file.close()
         shutil.rmtree('download')
-        box = QMessageBox(QMessageBox.Question, "提示", "升级完毕,确定后打开最新版本,旧版本exe自行删除！")  
+        box = QMessageBox(QMessageBox.Question, "提示", "升级完毕,确定后打开最新版本,删除当前旧版本！")  
         box.setStandardButtons(QMessageBox.Yes)
         A = box.button(QMessageBox.Yes)
         A.setText("确定")
@@ -347,12 +396,16 @@ class 选择窗口(QMainWindow):
                 if p.is_alive:
                     p.terminate()
                     p.join()
-        self.close()
-        newpath = os.getcwd()+"\\"+self.云端版本  
-        oldpath = sys.argv[0].replace("\\","/").split("/")
-        # FileName = oldpath[len(oldpath)-1]
-        # os.system(newpath+" "+FileName)
-        os.system(newpath)
+            self.close()
+            newpath = os.path.join(os.getcwd(),self.云端版本)
+            oldpath = sys.argv[0]
+            p = subprocess.Popen([
+                newpath,str(主进程PID), str(oldpath)
+                # "--cwd", dirpath,
+                # "--exe_name", filename,
+            ], shell=True, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p.wait()    
+            # os.system(newpath)
         
     def show_progress(self,file_name, total_size, now_size):
         percent = now_size / total_size
@@ -365,17 +418,17 @@ class 选择窗口(QMainWindow):
 
 import PyQt5.QtCore as qtc
 if __name__ == '__main__':
-    # logger.info(sys.argv)
-    # 带参数传入打开程序
-    # if len(sys.argv) > 1:
-        # if os.path.isfile(sys.argv[1]) and sys.argv[1]!="main.py":
-        #     try:
-        #         #杀老进程
-        #         os.system("taskkill /f /t /im "+sys.argv[1])
-        #         # 删除老版本
-        #         os.remove(os.getcwd()+"\\"+sys.argv[1])
-        #     except Exception as error:
-        #         logger.error("error={} \n detail {}".format(error,traceback.print_exc())) 
+    主进程PID = os.getpid() 
+    if len(sys.argv) > 1:
+        try:
+            #杀老进程
+            os.system("taskkill /pid {} -f".format(sys.argv[1]))
+            time.sleep(5)
+            if "main.py" not in sys.argv[2]:
+            # 删除老版本
+                os.remove(sys.argv[2])
+        except Exception as error:
+            logger.error("error={} \n detail {}".format(error,traceback.print_exc())) 
     if 窗口显示模式 == 1:
         if hasattr(qtc.Qt, 'AA_EnableHighDpiScaling'):
             QtWidgets.QApplication.setAttribute(qtc.Qt.AA_EnableHighDpiScaling, True)
@@ -385,7 +438,11 @@ if __name__ == '__main__':
     instance = 选择窗口()
     instance.show()
     try:
-        with open("ResourceFiles\\Config\\release_version.json", "r+") as fp:
+        instance.报错提示.exec()
+    except Exception as error:
+        pass    
+    try:
+        with open("ResourceFiles/Config/release_version.json", "r+") as fp:
             versionInfo = json.load(fp)
             展示信息 = versionInfo['ShowChangeLog']
             versionInfo['ShowChangeLog'] = False
@@ -393,8 +450,9 @@ if __name__ == '__main__':
             json.dump(versionInfo,fp,ensure_ascii=False)
             fp.truncate()
         fp.close()
-        if 展示信息 :
+        if 展示信息 :        
             QDesktopServices.openUrl(QUrl('http://dnf.17173.com/jsq/changlog.html#/'))
+            instance.版本提示.exec()
     except Exception as error:
         logger.error("error={} \n detail {}".format(error,traceback.print_exc())) 
         pass
